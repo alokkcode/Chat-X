@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-
+	"strconv"
 	"github.com/gorilla/websocket"
+	"log" 
 )
 
 // WebSocket Upgrader for handling HTTP to WebSocket upgrade
@@ -46,6 +47,7 @@ func HandleHub(w http.ResponseWriter, r *http.Request) {
 
 // HandleJoinRoom renders the chatroom UI when joining a room
 func HandleJoinRoom(w http.ResponseWriter, r *http.Request) {
+	// Get username from cookie
 	usernameCookie, err1 := r.Cookie("username")
 	roomID := r.URL.Query().Get("room")
 
@@ -61,11 +63,27 @@ func HandleJoinRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Convert roomID from string to integer
+	roomIDInt, err := strconv.Atoi(roomID)
+	if err != nil {
+		http.Error(w, "Invalid room ID", http.StatusBadRequest)
+		return
+	}
+
+	// Fetch messages for this room
+	messages, err := models.GetMessagesByRoomID(roomIDInt)
+	if err != nil {
+		fmt.Println("Error fetching messages:", err)
+		messages = []models.Message{} // Default to empty list if error occurs
+	}
+
+
 	tmpl := template.Must(template.ParseFiles("templates/chatroom.html"))
 	tmpl.Execute(w, map[string]interface{}{
 		"Username": usernameCookie.Value,
 		"RoomID":   roomID,
 		"RoomName": room.Name,
+		"Messages": messages, //passing messages to template as well
 	})
 }
 
@@ -117,6 +135,22 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 				fmt.Println("WebSocket error:", err)
 			}
 			break
+		}
+
+		// Get the user ID using the helper function
+		userID, _ := models.GetUserIDByUsername(username) // Retrieves user ID from DB
+
+		roomIDInt, err := strconv.Atoi(roomID) // Convert roomID string to int
+		if err != nil {
+    	log.Println("Error converting roomID to int:", err)
+    	return
+		}
+
+
+		// Save the received message to the database
+		err = models.SaveMessage(roomIDInt, userID, string(p))
+		if err != nil {
+			log.Println("Error saving message:", err)
 		}
 
 		// Broadcast message

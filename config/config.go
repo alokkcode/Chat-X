@@ -50,3 +50,9 @@ func getEnv(key, fallback string) string {
 	}
 	return fallback
 }
+
+
+// GetDB returns the database instance
+func GetDB() *sql.DB {
+	return DB
+}
