@@ -12,13 +12,23 @@
   <a href="/hub" class="back-button">⬅ Back to Room List</a>
 
    <!-- Chat Box -->
-   <div id="chat-box" style="height:300px; overflow-y:scroll; border:1px solid #000; padding:10px;">
+  <div id="chat-box" style="height:300px; overflow-y:scroll; border:1px solid #000; padding:10px;">
     {{range .Messages}}
-      <p><strong>{{.Username}}:</strong> {{.Content}}</p>
+      <div class="message">
+        <strong>{{.Username}}:</strong> {{.Content}}
+  
+        <!-- Ensure delete button appears for admins and message owners -->
+        {{if or (eq $.Role "admin") (eq $.Username .Username)}}
+          <form method="POST" action="/delete-message" style="display:inline">
+            <input type="hidden" name="id" value="{{.ID}}">
+            <button type="submit" style="background:none; border:none; cursor:pointer; color:red;">🗑️ Delete</button>
+          </form>
+        {{end}}
+      </div>
     {{end}}
   </div>
 
-  
+
     <!-- Chat Form -->
   <form id="chat-form">
     <input type="text" id="msg" placeholder="Enter message" required>

@@ -45,37 +45,6 @@ func GetMessagesByRoom(roomID int) ([]Message, error) {
     return messages, nil
 }
 
-// // GetMessagesByRoomID returns the latest messages for a given room
-// func GetMessagesByRoomID(roomID int) ([]Message, error) {
-// 	db := config.GetDB()
-// 	rows, err := db.Query(`
-// 		SELECT m.id, m.content, m.timestamp, u.username 
-// 		FROM messages m
-// 		JOIN users u ON m.user_id = u.id
-// 		WHERE m.room_id = ?
-// 		ORDER BY m.timestamp ASC`, roomID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer rows.Close()
-
-// 	var messages []Message
-// 	for rows.Next() {
-// 		var msg Message
-// 		var username string
-// 		err := rows.Scan(&msg.ID, &msg.Content, &msg.Timestamp, &username)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		msg.Username = username
-// 		messages = append(messages, msg)
-// 	}
-// 	return messages, nil
-// }
-
-
-
-
 // GetMessagesByRoomID returns the latest messages for a given room
 func GetMessagesByRoomID(roomID int) ([]Message, error) {
     db := config.GetDB()
@@ -111,4 +80,22 @@ func GetMessagesByRoomID(roomID int) ([]Message, error) {
         messages = append(messages, msg)
     }
     return messages, nil
+}
+
+// GetMessageByID fetches message details (used for deletion)
+func GetMessageByID(msgID int) (Message, error) {
+	db := config.GetDB()
+	var msg Message
+	err := db.QueryRow("SELECT id, user_id FROM messages WHERE id = ?", msgID).Scan(&msg.ID, &msg.UserID)
+	if err != nil {
+		return msg, err
+	}
+	return msg, nil
+}
+
+// DeleteMessage deletes a message from DB
+func DeleteMessage(msgID int) error {
+	db := config.GetDB()
+	_, err := db.Exec("DELETE FROM messages WHERE id = ?", msgID)
+	return err
 }

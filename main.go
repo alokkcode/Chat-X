@@ -15,5 +15,6 @@ func main() {
 	http.HandleFunc("/create-room", handlers.HandleCreateRoom)
 	http.HandleFunc("/join", handlers.HandleJoinRoom)
 	http.HandleFunc("/ws", handlers.HandleWebSocket)
+	http.HandleFunc("/delete-message", handlers.HandleDeleteMessage)
 	http.ListenAndServe(":8080", nil)
 }

@@ -49,12 +49,17 @@ func HandleHub(w http.ResponseWriter, r *http.Request) {
 func HandleJoinRoom(w http.ResponseWriter, r *http.Request) {
 	// Get username from cookie
 	usernameCookie, err1 := r.Cookie("username")
+	roleCookie, err2 := r.Cookie("role")
 	roomID := r.URL.Query().Get("room")
 
-	if err1 != nil || roomID == "" {
+	if err1 != nil || err2 != nil || roomID == "" {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
+
+	// Get user details
+	username := usernameCookie.Value
+	role := roleCookie.Value //Fetch user's role
 
 	// Optional: fetch room name from DB for display
 	room, err := models.GetRoomByID(roomID)
@@ -77,10 +82,11 @@ func HandleJoinRoom(w http.ResponseWriter, r *http.Request) {
 		messages = []models.Message{} // Default to empty list if error occurs
 	}
 
-
+	// Pass the user's role and username to the template
 	tmpl := template.Must(template.ParseFiles("templates/chatroom.html"))
 	tmpl.Execute(w, map[string]interface{}{
-		"Username": usernameCookie.Value,
+		"Username": username,
+		"Role":     role,
 		"RoomID":   roomID,
 		"RoomName": room.Name,
 		"Messages": messages, //passing messages to template as well
@@ -163,5 +169,65 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+
+
+func HandleDeleteMessage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get current user
+	usernameCookie, err1 := r.Cookie("username")
+	roleCookie, err2 := r.Cookie("role")
+	if err1 != nil || err2 != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	username := usernameCookie.Value
+	role := roleCookie.Value
+
+	// Get message ID from form
+	msgIDStr := r.FormValue("id")
+	msgID, err := strconv.Atoi(msgIDStr)
+	if err != nil {
+		http.Error(w, "Invalid message ID", http.StatusBadRequest)
+		return
+	}
+
+	// Get message owner ID
+	message, err := models.GetMessageByID(msgID)
+	if err != nil {
+		http.Error(w, "Message not found", http.StatusNotFound)
+		return
+	}
+
+	// Fetch current user ID
+	userID, err := models.GetUserIDByUsername(username)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusInternalServerError)
+		return
+	}
+	
+	// Debugging log: Print details before attempting deletion
+	fmt.Println("Deleting Message:", msgID, "User:", username, "Role:", role)
+
+	// Only allow delete if admin or owner
+	if role != "admin" && message.UserID != userID {
+		http.Error(w, "Unauthorized", http.StatusForbidden)
+		return
+	}
+
+	// Delete message
+	err = models.DeleteMessage(msgID)
+	if err != nil {
+		http.Error(w, "Failed to delete message", http.StatusInternalServerError)
+		return
+	}
+
+	// Redirect back
+	http.Redirect(w, r, r.Header.Get("Referer"), http.StatusSeeOther)
+}
+
 
 
