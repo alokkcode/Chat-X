@@ -2,7 +2,11 @@ package models
 
 // TODO: Define Room struct and DB logic herE
 
-import "CHATX/config"
+import (
+	"CHATX/config"
+	"database/sql"
+	"fmt"
+)
 
 type Room struct {
 	ID   int
@@ -40,4 +44,25 @@ func GetRoomByID(id string) (*Room, error) {
 		return nil, err
 	}
 	return &room, nil
+}
+
+// AddUserToRoom adds a user to a specified room in the database
+func AddUserToRoom(roomID, username string) error {
+	// Get the user ID based on the username
+	var userID int
+	err := config.DB.QueryRow("SELECT id FROM users WHERE username = ?", username).Scan(&userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("user not found")
+		}
+		return err
+	}
+
+	// Insert the user-room relationship into the user_rooms table
+	_, err = config.DB.Exec("INSERT INTO user_rooms (user_id, room_id) VALUES (?, ?)", userID, roomID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

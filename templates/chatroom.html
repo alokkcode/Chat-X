@@ -7,8 +7,14 @@
   <h2>Room: {{.RoomName}}</h2>
   <h4>User: {{.Username}}</h4>
 
+
+<!-- Back to Room List Button -->
+  <a href="/hub" class="back-button">⬅ Back to Room List</a>
+
+   <!-- Chat Box -->
   <div id="chat-box" style="height:300px; overflow-y:scroll; border:1px solid #000; padding:10px;"></div>
 
+    <!-- Chat Form -->
   <form id="chat-form">
     <input type="text" id="msg" placeholder="Enter message" required>
     <button type="submit">Send</button>
