@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat Hub</title>
+</head>
+<body>
+  <h2>Welcome, {{.Username}} (Role: {{.Role}})</h2>
+
+  <h3>Available Rooms:</h3>
+  <ul>
+    {{range .Rooms}}
+      <li>{{.Name}} <a href="/join?room={{.ID}}">Join</a></li>
+    {{else}}
+      <li>No rooms available</li>
+    {{end}}
+  </ul>
+
+  {{if eq .Role "admin"}}
+    <h3>Create New Room</h3>
+    <form action="/create-room" method="POST">
+      <input type="text" name="room_name" placeholder="Room Name" required>
+      <button type="submit">Create</button>
+    </form>
+  {{end}}
+</body>
+</html>
