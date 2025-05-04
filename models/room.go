@@ -72,3 +72,34 @@ func GetLatestRoom(userID int) (*Room, error) {
 	}
 	return &room, nil
 }
+
+func GetRoomsByAdmin(adminID int) ([]Room, error) {
+	rows, err := config.DB.Query("SELECT id, name FROM rooms WHERE created_by = ?", adminID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var rooms []Room
+	for rows.Next() {
+		var room Room
+		err := rows.Scan(&room.ID, &room.Name)
+		if err != nil {
+			return nil, err
+		}
+		rooms = append(rooms, room)
+	}
+	return rooms, nil
+}
+
+func GetMessageCount(roomID int) (int, error) {
+	var count int
+	err := config.DB.QueryRow("SELECT COUNT(*) FROM messages WHERE room_id = ?", roomID).Scan(&count)
+	return count, err
+}
+
+func GetActiveUserCount(roomID int) (int, error) {
+	var count int
+	err := config.DB.QueryRow("SELECT COUNT(*) FROM user_rooms WHERE room_id = ?", roomID).Scan(&count)
+	return count, err
+}

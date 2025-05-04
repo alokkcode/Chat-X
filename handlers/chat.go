@@ -105,6 +105,9 @@ func HandleJoinRoom(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Active users mapping: roomID -> map[userID]bool 
+var activeUsers = make(map[int]map[int]bool) 
+
 // HandleWebSocket upgrades HTTP requests to WebSocket connections
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	sessionCookie, err := r.Cookie("session")
@@ -139,7 +142,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Add user to the room
+	// Add user to the room WebSocket pool
 	hub.RoomsMutex.Lock()
 	if hub.Rooms[roomID] == nil {
 		hub.Rooms[roomID] = make(map[*websocket.Conn]bool)
@@ -147,13 +150,18 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	hub.Rooms[roomID][conn] = true
 	hub.RoomsMutex.Unlock()
 
-	// Ensure cleanup on disconnect
-	defer func() {
-		hub.RoomsMutex.Lock()
-		delete(hub.Rooms[roomID], conn)
-		hub.RoomsMutex.Unlock()
-		conn.Close()
-	}()
+	// ✅ TRACK ACTIVE USERS - Add user to activeUsers list
+	hub.RoomsMutex.Lock() // Prevent race conditions
+	if _, exists := activeUsers[roomIDInt]; !exists {
+		activeUsers[roomIDInt] = make(map[int]bool)
+	}
+	activeUsers[roomIDInt][user.ID] = true
+	hub.RoomsMutex.Unlock()
+
+	log.Println("User joined:", user.Username, "Room ID:", roomIDInt)
+
+	// ✅ Broadcast updated active user count
+	broadcastUserCount(roomIDInt)
 
 	// Notify users via WebSocket in JSON format
 	joinMsg := map[string]interface{}{
@@ -163,6 +171,23 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	joinJSON, _ := json.Marshal(joinMsg)
 	hub.BroadcastToRoom(roomID, string(joinJSON))
+
+	// Ensure cleanup on disconnect
+	defer func() {
+		hub.RoomsMutex.Lock()
+		delete(hub.Rooms[roomID], conn)
+		hub.RoomsMutex.Unlock()
+		conn.Close()
+
+		// ✅ Remove user from active list on disconnect
+		hub.RoomsMutex.Lock() // Prevent race conditions
+		delete(activeUsers[roomIDInt], user.ID)
+		hub.RoomsMutex.Unlock()
+
+		log.Println("User left:", user.Username, "Room ID:", roomIDInt)
+
+		broadcastUserCount(roomIDInt) // ✅ Update active user count
+	}()
 
 	// Handle messaging within the room
 	for {
@@ -322,4 +347,109 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+
+
+func HandleAdminDashboard(w http.ResponseWriter, r *http.Request) {
+	sessionCookie, err := r.Cookie("session")
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	user, err := models.ValidateSessionToken(sessionCookie.Value)
+	if err != nil || user.Role != "admin" {
+		http.Error(w, "Unauthorized", http.StatusForbidden)
+		return
+	}
+
+	// ✅ Fetch rooms created by this admin
+	rooms, err := models.GetRoomsByAdmin(user.ID)
+	if err != nil {
+		http.Error(w, "Could not fetch rooms", http.StatusInternalServerError)
+		return
+	}
+
+	// ✅ Fetch stats for each room
+	roomStats := []struct {
+		RoomID      int
+		RoomName    string
+		TotalMsgs   int
+		ActiveUsers int
+	}{}
+
+	for _, room := range rooms {
+		msgCount, _ := models.GetMessageCount(room.ID)
+		userCount, _ := models.GetActiveUserCount(room.ID)
+
+		roomStats = append(roomStats, struct {
+			RoomID      int
+			RoomName    string
+			TotalMsgs   int
+			ActiveUsers int
+		}{
+			RoomID:      room.ID,
+			RoomName:    room.Name,
+			TotalMsgs:   msgCount,
+			ActiveUsers: userCount,
+		})
+	}
+
+	tmpl := template.Must(template.ParseFiles("templates/admin_dashboard.html"))
+	tmpl.Execute(w, map[string]interface{}{
+		"Username": user.Username,
+		"Rooms":    roomStats,
+	})
+}
+
+
+func broadcastUserCount(roomID int) {
+	hub.RoomsMutex.Lock()
+	userCount := len(activeUsers[roomID]) // ✅ Get active user count
+	hub.RoomsMutex.Unlock()
+
+	update := map[string]interface{}{
+		"type": "active_users",
+		"room_id": roomID,
+		"user_count": userCount,
+	}
+	updateJSON, _ := json.Marshal(update)
+
+	// ✅ Send update to all clients in the room
+	hub.BroadcastToRoom(strconv.Itoa(roomID), string(updateJSON))
+}
+
+
+
+func HandleDashboardWebSocket(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		http.Error(w, "WebSocket upgrade failed", http.StatusInternalServerError)
+		return
+	}
+
+	defer conn.Close()
+
+	// ✅ Continuously send active user updates to dashboard
+	for {
+		for roomID, users := range activeUsers {
+			userCount := len(users)
+
+			update := map[string]interface{}{
+				"type": "active_users",
+				"room_id": roomID,
+				"user_count": userCount,
+			}
+			updateJSON, _ := json.Marshal(update)
+
+			// ✅ Send update to dashboard WebSocket client
+			err := conn.WriteMessage(websocket.TextMessage, updateJSON)
+			if err != nil {
+				log.Println("Error sending active users update:", err)
+				return
+			}
+		}
+		time.Sleep(3 * time.Second) // ✅ Update every 3 seconds
+	}
 }

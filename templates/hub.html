@@ -54,6 +54,11 @@
             justify-content: space-between;
             align-items: center;
         }
+        .admin-controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
@@ -65,8 +70,9 @@
     </div>
 
     {{if eq .Role "admin"}}
-    <div style="margin-top: 15px;">
+    <div class="admin-controls">
         <button class="btn" id="createRoomBtn">Create New Room</button>
+        <a href="/admin/dashboard" class="btn">📊 Dashboard</a>
     </div>
     {{end}}
 
