@@ -4,11 +4,14 @@ import (
 	"CHATX/hub"
 	"CHATX/models"
 	"fmt"
+	"encoding/json"
 	"html/template"
 	"net/http"
 	"strconv"
+	"time"
 	"github.com/gorilla/websocket"
-	"log" 
+	"log"
+	"CHATX/config"
 )
 
 // WebSocket Upgrader for handling HTTP to WebSocket upgrade
@@ -18,18 +21,19 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// HandleHub shows the chat hub page
+// HandleHub renders the chat hub page
 func HandleHub(w http.ResponseWriter, r *http.Request) {
-	usernameCookie, err := r.Cookie("username")
-	roleCookie, err2 := r.Cookie("role")
-
-	if err != nil || err2 != nil {
+	sessionCookie, err := r.Cookie("session")
+	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
-	username := usernameCookie.Value
-	role := roleCookie.Value
+	user, err := models.ValidateSessionToken(sessionCookie.Value)
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 
 	rooms, err := models.GetAllRooms()
 	if err != nil {
@@ -39,67 +43,92 @@ func HandleHub(w http.ResponseWriter, r *http.Request) {
 
 	tmpl := template.Must(template.ParseFiles("templates/hub.html"))
 	tmpl.Execute(w, map[string]interface{}{
-		"Username": username,
-		"Role":     role,
+		"Username": user.Username,
+		"Role":     user.Role,
 		"Rooms":    rooms,
 	})
 }
 
 // HandleJoinRoom renders the chatroom UI when joining a room
 func HandleJoinRoom(w http.ResponseWriter, r *http.Request) {
-	// Get username from cookie
-	usernameCookie, err1 := r.Cookie("username")
-	roleCookie, err2 := r.Cookie("role")
-	roomID := r.URL.Query().Get("room")
-
-	if err1 != nil || err2 != nil || roomID == "" {
+	sessionCookie, err := r.Cookie("session")
+	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
-	// Get user details
-	username := usernameCookie.Value
-	role := roleCookie.Value //Fetch user's role
+	user, err := models.ValidateSessionToken(sessionCookie.Value)
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 
-	// Optional: fetch room name from DB for display
-	room, err := models.GetRoomByID(roomID)
+	roomID := r.URL.Query().Get("room")
+	if roomID == "" {
+		http.Error(w, "Invalid room ID", http.StatusBadRequest)
+		return
+	}
+
+	roomIDInt, err := strconv.Atoi(roomID)
+	if err != nil {
+		http.Error(w, "Invalid room ID format", http.StatusBadRequest)
+		return
+	}
+
+	room, err := models.GetRoomByID(roomIDInt)
 	if err != nil {
 		http.Error(w, "Room not found", http.StatusNotFound)
 		return
 	}
 
-	// Convert roomID from string to integer
-	roomIDInt, err := strconv.Atoi(roomID)
+	messages, err := models.GetMessagesByRoomID(roomIDInt, user.ID, user.Role) // Pass user ID & role
 	if err != nil {
-		http.Error(w, "Invalid room ID", http.StatusBadRequest)
-		return
+		messages = []models.Message{}
 	}
-
-	// Fetch messages for this room
-	messages, err := models.GetMessagesByRoomID(roomIDInt)
+	
+	// Encode messages as a valid JSON string
+	messagesJSON, err := json.Marshal(messages)
 	if err != nil {
-		fmt.Println("Error fetching messages:", err)
-		messages = []models.Message{} // Default to empty list if error occurs
-	}
+	http.Error(w, "Error encoding messages", http.StatusInternalServerError)
+	return
+}
 
-	// Pass the user's role and username to the template
+	fmt.Println("Sending messages to template:", string(messagesJSON))
 	tmpl := template.Must(template.ParseFiles("templates/chatroom.html"))
 	tmpl.Execute(w, map[string]interface{}{
-		"Username": username,
-		"Role":     role,
+		"Username": user.Username,
+		"UserID":   user.ID,
+		"Role":     user.Role,
 		"RoomID":   roomID,
 		"RoomName": room.Name,
-		"Messages": messages, //passing messages to template as well
+		"MessagesJSON": template.JS(string(messagesJSON)),// Escapes JSON for safe embedding
 	})
 }
 
-// HandleWebSocket is responsible for upgrading HTTP requests to WebSocket connections
+// HandleWebSocket upgrades HTTP requests to WebSocket connections
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	roomID := r.URL.Query().Get("room")
-	username := r.URL.Query().Get("user")
+	sessionCookie, err := r.Cookie("session")
+	if err != nil {
+		http.Error(w, "Unauthorized: No session", http.StatusUnauthorized)
+		return
+	}
 
-	if roomID == "" || username == "" {
-		http.Error(w, "Missing room or user", http.StatusBadRequest)
+	user, err := models.ValidateSessionToken(sessionCookie.Value)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	roomID := r.URL.Query().Get("room")
+	if roomID == "" {
+		http.Error(w, "Missing room ID", http.StatusBadRequest)
+		return
+	}
+
+	roomIDInt, err := strconv.Atoi(roomID)
+	if err != nil {
+		log.Println("Error converting roomID to int:", err)
+		http.Error(w, "Invalid room ID format", http.StatusBadRequest)
 		return
 	}
 
@@ -126,108 +155,171 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		conn.Close()
 	}()
 
-	// Notify users of the new join
-	notifyJoin := fmt.Sprintf("%s has joined the room", username)
-	hub.BroadcastToRoom(roomID, notifyJoin)
+	// Notify users via WebSocket in JSON format
+	joinMsg := map[string]interface{}{
+		"type":     "system",
+		"text":     fmt.Sprintf("%s has joined the room", user.Username),
+		"username": "System",
+	}
+	joinJSON, _ := json.Marshal(joinMsg)
+	hub.BroadcastToRoom(roomID, string(joinJSON))
 
 	// Handle messaging within the room
 	for {
-		messageType, p, err := conn.ReadMessage()
+		_, p, err := conn.ReadMessage()
 		if err != nil {
-			// fmt.Println("Error reading message:", err)
-			if websocket.IsCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
-				fmt.Println("User disconnected normally")
-			} else {
-				fmt.Println("WebSocket error:", err)
-			}
 			break
 		}
 
-		// Get the user ID using the helper function
-		userID, _ := models.GetUserIDByUsername(username) // Retrieves user ID from DB
-
-		roomIDInt, err := strconv.Atoi(roomID) // Convert roomID string to int
-		if err != nil {
-    	log.Println("Error converting roomID to int:", err)
-    	return
-		}
-
-
-		// Save the received message to the database
-		err = models.SaveMessage(roomIDInt, userID, string(p))
+		// Save message & get message ID
+		messageID, err := models.SaveMessageAndGetID(roomIDInt, user.ID, string(p))
 		if err != nil {
 			log.Println("Error saving message:", err)
+			continue
 		}
 
-		// Broadcast message
-		hub.BroadcastToRoom(roomID, fmt.Sprintf("%s: %s", username, string(p)))
-
-		// Echo message back to sender
-		if err := conn.WriteMessage(messageType, p); err != nil {
-			fmt.Println("Error sending message:", err)
-			break
+		// Broadcast message with metadata
+		messageData := map[string]interface{}{
+			"type":       "chat",
+			"message_id": messageID,
+			"username":   user.Username,
+			"user_id":    user.ID,
+			"role":       user.Role,
+			"text":       string(p),
+			"timestamp":  time.Now().Format(time.RFC3339),
 		}
+		messageJSON, _ := json.Marshal(messageData)
+		hub.BroadcastToRoom(roomID, string(messageJSON))
 	}
 }
 
-
+// HandleDeleteMessage handles form-based message deletion requests
 func HandleDeleteMessage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid request", http.StatusMethodNotAllowed)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Get current user
-	usernameCookie, err1 := r.Cookie("username")
-	roleCookie, err2 := r.Cookie("role")
-	if err1 != nil || err2 != nil {
+	sessionCookie, err := r.Cookie("session")
+	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	username := usernameCookie.Value
-	role := roleCookie.Value
 
-	// Get message ID from form
-	msgIDStr := r.FormValue("id")
-	msgID, err := strconv.Atoi(msgIDStr)
+	user, err := models.ValidateSessionToken(sessionCookie.Value)
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	// Parse form data
+	err = r.ParseForm()
+	if err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	messageIDStr := r.FormValue("id")
+	messageID, err := strconv.Atoi(messageIDStr)
 	if err != nil {
 		http.Error(w, "Invalid message ID", http.StatusBadRequest)
 		return
 	}
 
-	// Get message owner ID
-	message, err := models.GetMessageByID(msgID)
+	// Delete message
+	err = models.DeleteMessage(messageID, user.ID)
 	if err != nil {
-		http.Error(w, "Message not found", http.StatusNotFound)
+		http.Error(w, "Failed to delete message", http.StatusForbidden)
 		return
 	}
 
-	// Fetch current user ID
-	userID, err := models.GetUserIDByUsername(username)
-	if err != nil {
-		http.Error(w, "User not found", http.StatusInternalServerError)
+	// Get room ID to redirect back
+	msg, _ := models.GetMessageByID(messageID)
+	roomID := msg.RoomID
+
+	// Notify clients about deletion
+	deleteMsg := map[string]interface{}{
+		"type":       "delete",
+		"message_id": messageID,
+	}
+	deleteJSON, _ := json.Marshal(deleteMsg)
+	hub.BroadcastToRoom(strconv.Itoa(roomID), string(deleteJSON))
+
+	// Redirect back to the chat room
+	http.Redirect(w, r, "/join?room="+strconv.Itoa(roomID), http.StatusSeeOther)
+}
+
+// HandleAPIDeleteMessage handles AJAX/JSON API requests for message deletion
+func HandleAPIDeleteMessage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request", http.StatusMethodNotAllowed)
 		return
 	}
-	
-	// Debugging log: Print details before attempting deletion
-	fmt.Println("Deleting Message:", msgID, "User:", username, "Role:", role)
 
-	// Only allow delete if admin or owner
-	if role != "admin" && message.UserID != userID {
-		http.Error(w, "Unauthorized", http.StatusForbidden)
+	sessionCookie, err := r.Cookie("session")
+	if err != nil {
+		http.Error(w, "Unauthorized: No session", http.StatusUnauthorized)
+		return
+	}
+
+	user, err := models.ValidateSessionToken(sessionCookie.Value)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var requestData struct {
+		MessageID int `json:"message_id"`
+		RoomID    int `json:"room_id"`
+	}
+
+	// Read request body and log it
+	err = json.NewDecoder(r.Body).Decode(&requestData)
+	fmt.Println("Received delete request:", requestData) //  Log the incoming request data
+
+	if err != nil || requestData.MessageID == 0 || requestData.RoomID == 0 {
+		http.Error(w, "Invalid request data", http.StatusBadRequest)
 		return
 	}
 
 	// Delete message
-	err = models.DeleteMessage(msgID)
+	err = models.DeleteMessage(requestData.MessageID, user.ID)
 	if err != nil {
-		http.Error(w, "Failed to delete message", http.StatusInternalServerError)
+		http.Error(w, "Failed to delete message", http.StatusForbidden)
 		return
 	}
 
-	// Redirect back
-	http.Redirect(w, r, r.Header.Get("Referer"), http.StatusSeeOther)
+	// Notify clients about deletion
+	deleteMsg := map[string]interface{}{
+		"type":       "delete",
+		"message_id": requestData.MessageID,
+	}
+	deleteJSON, _ := json.Marshal(deleteMsg)
+	hub.BroadcastToRoom(strconv.Itoa(requestData.RoomID), string(deleteJSON))
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Message deleted successfully"})
 }
 
 
 
+// LogoutHandler handles user logout
+func LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	// Clear the session cookie
+	cookie := &http.Cookie{
+		Name:     "session",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	}
+	http.SetCookie(w, cookie)
+	
+	// Delete session from database if present
+	sessionCookie, err := r.Cookie("session")
+	if err == nil {
+		_, _ = config.DB.Exec("DELETE FROM sessions WHERE token = ?", sessionCookie.Value)
+	}
+	
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}

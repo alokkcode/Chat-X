@@ -9,12 +9,16 @@ import (
 func main() {
 	config.ConnectDB()
 
-	http.HandleFunc("/register", handlers.HandleRegister)
-	http.HandleFunc("/login", handlers.HandleLogin)
+	fs := http.FileServer(http.Dir("static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
+
+	http.HandleFunc("/register", handlers.RegisterUser)
+	http.HandleFunc("/login", handlers.LoginHandler)
+	http.HandleFunc("/logout", handlers.LogoutHandler)
 	http.HandleFunc("/hub", handlers.HandleHub)
 	http.HandleFunc("/create-room", handlers.HandleCreateRoom)
 	http.HandleFunc("/join", handlers.HandleJoinRoom)
 	http.HandleFunc("/ws", handlers.HandleWebSocket)
-	http.HandleFunc("/delete-message", handlers.HandleDeleteMessage)
+	http.HandleFunc("/api/delete-message", handlers.HandleAPIDeleteMessage)
 	http.ListenAndServe(":8080", nil)
 }

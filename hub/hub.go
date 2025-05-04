@@ -7,10 +7,10 @@ import (
 )
 
 var (
-	Rooms      = make(map[string]map[*websocket.Conn]bool) // roomID → set of connections
+	// Rooms maps room IDs to connections
+	Rooms      = make(map[string]map[*websocket.Conn]bool) 
 	RoomsMutex sync.Mutex
 )
-
 
 // BroadcastToRoom sends a message to all clients in a room
 func BroadcastToRoom(roomID string, message string) {

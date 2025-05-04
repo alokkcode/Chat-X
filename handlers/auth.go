@@ -1,63 +1,95 @@
 package handlers
 
 import (
-	"CHATX/models"
 	"html/template"
+	"CHATX/models"
 	"net/http"
 )
 
-// Combined handler for /register
-func HandleRegister(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
+// RegisterUser handles user registration
+func RegisterUser(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
 		tmpl := template.Must(template.ParseFiles("templates/register.html"))
 		tmpl.Execute(w, nil)
 		return
 	}
 
-	if r.Method == "POST" {
-		username := r.FormValue("username")
-		password := r.FormValue("password")
-		role := r.FormValue("role")
-
-		err := models.RegisterUser(username, password, role)
-		if err != nil {
-			http.Error(w, "Registration failed", http.StatusInternalServerError)
-			return
-		}
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-	}
-}
-
-// Combined handler for /login
-func HandleLogin(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		tmpl := template.Must(template.ParseFiles("templates/login.html"))
-		tmpl.Execute(w, nil)
+	// Parse form
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
 		return
 	}
 
-	if r.Method == "POST" {
-		username := r.FormValue("username")
+	username := r.FormValue("username")
+	email := r.FormValue("email")
+	password := r.FormValue("password")
+	role := r.FormValue("role") // get role from form
+
+
+	if username == "" || email == "" || password == "" {
+		http.Error(w, "All fields required", http.StatusBadRequest)
+		return
+	}
+
+	// Call models.RegisterUser to handle DB insertion
+	err := models.RegisterUser(username, email, password, role)
+	if err != nil {
+		http.Error(w, "Registration failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+// Combined handler for /login
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		tmpl := template.Must(template.ParseFiles("templates/login.html"))
+		tmpl.Execute(w, nil)
+
+	case "POST":
+		r.ParseForm()
+		email := r.FormValue("email")
 		password := r.FormValue("password")
 
-		user, err := models.GetUserByUsername(username)
-		if err != nil || !models.CheckPasswordHash(password, user.Password) {
-			http.Error(w, "Invalid login", http.StatusUnauthorized)
+		user, err := models.GetUserByEmail(email)
+		if err != nil {
+			http.Error(w, "Invalid email or password", http.StatusUnauthorized)
 			return
 		}
 
-		// Set session cookies
-		http.SetCookie(w, &http.Cookie{
-			Name:  "username",
-			Value: user.Username,
-			Path:  "/",
-		})
-		http.SetCookie(w, &http.Cookie{
-			Name:  "role",
-			Value: user.Role,
-			Path:  "/",
-		})
+		if !models.CheckPasswordHash(password, user.PasswordHash) {
+			http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+			return
+		}
+
+		// Generate and store session token
+		sessionToken, err := models.GenerateSessionToken()
+		if err != nil {
+			http.Error(w, "Error generating session", http.StatusInternalServerError)
+			return
+		}
+
+		err = models.StoreSessionToken(user.ID, sessionToken)
+		if err != nil {
+			http.Error(w, "Server error storing session", http.StatusInternalServerError)
+			return
+		}
+
+		// Set cookie with session token
+		cookie := http.Cookie{
+			Name:     "session",
+			Value:    sessionToken,
+			Path:     "/",
+			HttpOnly: true, // Prevents JavaScript access for security
+			Secure:   true, // Requires HTTPS for better security
+		}
+		http.SetCookie(w, &cookie)
 
 		http.Redirect(w, r, "/hub", http.StatusSeeOther)
 	}
 }
+
+
