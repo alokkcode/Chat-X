@@ -47,21 +47,7 @@ func GetRoomByID(roomID int) (*Room, error) {
 	return &room, nil
 }
 
-// DeleteRoom removes a room (only if the requesting user created it)
-func DeleteRoom(roomID, userID int) error {
-	result, err := config.DB.Exec("DELETE FROM rooms WHERE id = ? AND created_by = ?", roomID, userID)
-	if err != nil {
-		return err
-	}
 
-	rowsAffected, _ := result.RowsAffected()
-	if rowsAffected == 0 {
-		return fmt.Errorf("You are not allowed to delete this room")
-	}
-
-	_, _ = config.DB.Exec("DELETE FROM messages WHERE room_id = ?", roomID) // Cleanup related messages
-	return nil
-}
 
 // GetLatestRoom fetches the most recently created room by a user
 func GetLatestRoom(userID int) (*Room, error) {
@@ -102,4 +88,44 @@ func GetActiveUserCount(roomID int) (int, error) {
 	var count int
 	err := config.DB.QueryRow("SELECT COUNT(*) FROM user_rooms WHERE room_id = ?", roomID).Scan(&count)
 	return count, err
+}
+
+
+
+func IsRoomCreatedByAdmin(roomID, adminID int) (bool, error) {
+	var count int
+	err := config.DB.QueryRow("SELECT COUNT(*) FROM rooms WHERE id = ? AND created_by = ?", roomID, adminID).Scan(&count)
+	return count > 0, err
+}
+
+
+
+
+func DeleteRoom(roomID, adminID int) error {
+	// Ensure the admin is the creator of the room before deleting
+	isAdminRoom, err := IsRoomCreatedByAdmin(roomID, adminID)
+	if err != nil || !isAdminRoom {
+		return fmt.Errorf("You can only delete rooms you created")
+	}
+
+	tx, err := config.DB.Begin()
+	if err != nil {
+		return err
+	}
+
+	// Delete all messages related to the room
+	_, err = tx.Exec("DELETE FROM messages WHERE room_id = ?", roomID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Delete the room itself
+	_, err = tx.Exec("DELETE FROM rooms WHERE id = ?", roomID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit() // Ensure everything is deleted before committing
 }

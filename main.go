@@ -22,5 +22,6 @@ func main() {
 	http.HandleFunc("/api/delete-message", handlers.HandleAPIDeleteMessage)
 	http.HandleFunc("/admin/dashboard", handlers.HandleAdminDashboard)
 	http.HandleFunc("/ws-dashboard", handlers.HandleDashboardWebSocket)
+	http.HandleFunc("/api/delete-room/", handlers.HandleDeleteRoom)
 	http.ListenAndServe(":8080", nil)
 }

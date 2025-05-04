@@ -59,14 +59,20 @@
             display: flex;
             gap: 10px;
         }
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
     <h1>Chat X</h1>
-    
-    <div>
-        Logged in as: <strong>{{.Username}}</strong> ({{.Role}}) 
-        <a href="/logout">Logout</a>
+
+    <div class="user-info">
+        <span>Logged in as: <strong>{{.Username}}</strong> ({{.Role}})</span>
+        <a href="/logout" class="btn" style="background-color: #d9534f;">Logout</a>
     </div>
 
     {{if eq .Role "admin"}}

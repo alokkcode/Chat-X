@@ -11,6 +11,7 @@
         .stats-box { border: 1px solid #ddd; padding: 15px; margin-bottom: 12px; background: #f9f9f9; border-radius: 5px; }
         .stat-title { font-weight: bold; font-size: 18px; }
         .user-count { font-weight: bold; color: #007bff; }
+        .delete-room-btn { background: #d9534f; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -25,6 +26,7 @@
             <div class="stat-title">{{.RoomName}}</div>
             <div>Total Messages: {{.TotalMsgs}}</div>
             <div class="user-count">Active Users: <span class="active-users">{{.ActiveUsers}}</span></div>
+            <button class="delete-room-btn" onclick="deleteRoom({{.RoomID}})">🗑️ Delete Room</button> 
         </div>
         {{end}}
     </div>
@@ -46,6 +48,26 @@
                 console.error("Error parsing WebSocket update:", e);
             }
         };
+
+        // Function to Delete Room
+        function deleteRoom(roomID) {
+            if (!confirm("Are you sure you want to delete this room? This action cannot be undone.")) return;
+
+            fetch(`/api/delete-room/${roomID}`, { method: "DELETE" })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.querySelector(`[data-room-id='${roomID}']`).remove();
+                    alert("Room deleted successfully.");
+                } else {
+                    alert("Failed to delete room. Please try again.");
+                }
+            })
+            .catch(error => {
+                console.error("Error deleting room:", error);
+                alert("An error occurred.");
+            });
+        }
     </script>
 </body>
 </html>

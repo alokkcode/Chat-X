@@ -6,6 +6,8 @@ import (
 	"CHATX/models"
 	"net/http"
 	"encoding/json"
+	"strconv"   
+	"strings"
 )
 
 // HandleCreateRoom handles room creation by an admin
@@ -64,45 +66,47 @@ func HandleCreateRoom(w http.ResponseWriter, r *http.Request) {
 
 // HandleDeleteRoom allows an admin to delete a room they created
 func HandleDeleteRoom(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodDelete { // ✅ Change from http.MethodPost to http.MethodDelete
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Get session token for authentication
 	sessionCookie, err := r.Cookie("session")
 	if err != nil {
 		http.Error(w, "Unauthorized: No session", http.StatusUnauthorized)
 		return
 	}
 
-	// Validate session & get user details
 	user, err := models.ValidateSessionToken(sessionCookie.Value)
 	if err != nil || user.Role != "admin" {
 		http.Error(w, "Unauthorized: Admin access required", http.StatusUnauthorized)
 		return
 	}
 
-	// Parse room ID from request body
-	var requestData struct {
-		RoomID int `json:"room_id"`
-	}
-
-	err = json.NewDecoder(r.Body).Decode(&requestData)
-	if err != nil || requestData.RoomID == 0 {
+	// ✅ Extract room ID from URL instead of reading JSON body
+	roomIDStr := strings.TrimPrefix(r.URL.Path, "/api/delete-room/")
+	roomID, err := strconv.Atoi(roomIDStr)
+	if err != nil {
 		http.Error(w, "Invalid room ID", http.StatusBadRequest)
 		return
 	}
 
-	// Attempt to delete the room (only if user is the creator)
-	err = models.DeleteRoom(requestData.RoomID, user.ID)
-	if err != nil {
-		http.Error(w, "Failed to delete room: "+err.Error(), http.StatusForbidden)
+	// ✅ Check if admin owns the room before deleting
+	isAdminRoom, err := models.IsRoomCreatedByAdmin(roomID, user.ID)
+	if err != nil || !isAdminRoom {
+		http.Error(w, "You can only delete rooms you created", http.StatusForbidden)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Room deleted successfully"})
+	// ✅ Delete the room and associated messages
+	err = models.DeleteRoom(roomID, user.ID)
+	if err != nil {
+		http.Error(w, "Failed to delete room: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"success": "true", "message": "Room deleted successfully"})
 }
 
 
