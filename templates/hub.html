@@ -4,96 +4,292 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat X - Chat Hub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+        :root {
+            --primary-color: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-hover: #4338ca;
+            --background-color: #f5f7fa;
+            --card-color: #ffffff;
+            --text-color: #333333;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --input-bg: #f9fafb;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --secondary-color: #10b981;
+            --secondary-hover: #059669;
+            --danger-color: #ef4444;
+            --danger-hover: #dc2626;
+        }
+        
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        h1 {
-            color: #333;
+        
+        body {
+            background: linear-gradient(135deg, var(--background-color) 0%, #c3cfe2 100%);
+            margin: 0;
+            min-height: 100vh;
+            padding: 30px;
+            color: var(--text-color);
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .logo {
             font-size: 32px;
-            margin-bottom: 15px;
+            font-weight: bold;
+            color: var(--primary-color);
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
         }
-        a {
-            color: #0066cc;
-            text-decoration: none;
+        
+        .logo i {
+            margin-right: 10px;
+            font-size: 28px;
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        a:hover {
-            text-decoration: underline;
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background-color: var(--card-color);
+            padding: 12px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
-        .btn {
+        
+        .user-info span {
+            color: var(--text-muted);
+        }
+        
+        .user-info strong {
+            color: var(--text-color);
+            font-weight: 600;
+        }
+        
+        .role-badge {
             display: inline-block;
-            padding: 8px 16px;
-            background-color: #007bff;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background-color: var(--primary-light);
             color: white;
+            margin-left: 5px;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
             border: none;
-            border-radius: 4px;
             cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-light));
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(45deg, var(--primary-hover), var(--primary-color));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
             text-decoration: none;
         }
-        .btn:hover {
-            background-color: #0056b3;
+        
+        .btn-secondary {
+            background: linear-gradient(45deg, var(--secondary-color), #34d399);
         }
+        
+        .btn-secondary:hover {
+            background: linear-gradient(45deg, var(--secondary-hover), var(--secondary-color));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(45deg, var(--danger-color), #f87171);
+        }
+        
+        .btn-danger:hover {
+            background: linear-gradient(45deg, var(--danger-hover), var(--danger-color));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+        
+        .admin-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
         .rooms-container {
-            background: white;
-            border-radius: 5px;
-            padding: 20px;
-            margin-top: 20px;
+            background: var(--card-color);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px var(--shadow-color);
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
         }
+        
         .rooms-heading {
             font-size: 24px;
             margin-top: 0;
-            margin-bottom: 15px;
-        }
-        .room-item {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
+            margin-bottom: 25px;
+            color: var(--text-color);
+            font-weight: 600;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-        }
-        .admin-controls {
-            margin-top: 15px;
-            display: flex;
             gap: 10px;
         }
-        .user-info {
+        
+        .room-list {
+            display: grid;
+            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        }
+        
+        .room-item {
+            background-color: var(--input-bg);
+            border-radius: 12px;
+            padding: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            transition: all 0.3s;
+            border: 1px solid var(--border-color);
+        }
+        
+        .room-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.05);
+            border-color: var(--primary-light);
+        }
+        
+        .room-name {
+            font-weight: 600;
+            font-size: 18px;
+            color: var(--text-color);
+        }
+        
+        .decoration {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(79, 70, 229, 0.03) 100%);
+            z-index: 0;
+        }
+        
+        .decoration-1 {
+            top: -150px;
+            right: -150px;
+            width: 300px;
+            height: 300px;
+        }
+        
+        .decoration-2 {
+            bottom: -100px;
+            left: -100px;
+            width: 200px;
+            height: 200px;
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .user-info {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .admin-controls {
+                width: 100%;
+            }
+            
+            .room-list {
+                grid-template-columns: 1fr;
+            }
+            
+            body {
+                padding: 20px;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Chat X</h1>
-
-    <div class="user-info">
-        <span>Logged in as: <strong>{{.Username}}</strong> ({{.Role}})</span>
-        <a href="/logout" class="btn" style="background-color: #d9534f;">Logout</a>
-    </div>
-
-    {{if eq .Role "admin"}}
-    <div class="admin-controls">
-        <button class="btn" id="createRoomBtn">Create New Room</button>
-        <a href="/admin/dashboard" class="btn">📊 Dashboard</a>
-    </div>
-    {{end}}
-
-    <div class="rooms-container">
-        <h2 class="rooms-heading">Available Rooms</h2>
-        <div id="roomList">
-            {{range .Rooms}}
-            <div class="room-item">
-                <span>{{.Name}}</span>
-                <a href="/join?room={{.ID}}" class="btn">Join</a>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-comment-dots"></i>
+                ChatX
             </div>
-            {{end}}
+            
+            <div class="user-info">
+                <span>Logged in as: <strong>{{.Username}}</strong> <span class="role-badge">{{.Role}}</span></span>
+                <a href="/logout" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </div>
+        
+        {{if eq .Role "admin"}}
+        <div class="admin-controls">
+            <button class="btn btn-primary" id="createRoomBtn"><i class="fas fa-plus"></i> Create New Room</button>
+            <a href="/admin/dashboard" class="btn btn-secondary"><i class="fas fa-chart-line"></i> Dashboard</a>
+        </div>
+        {{end}}
+        
+        <div class="rooms-container">
+            <div class="decoration decoration-1"></div>
+            <div class="decoration decoration-2"></div>
+            
+            <h2 class="rooms-heading"><i class="fas fa-comments"></i> Available Rooms</h2>
+            
+            <div class="room-list" id="roomList">
+                {{range .Rooms}}
+                <div class="room-item">
+                    <span class="room-name">{{.Name}}</span>
+                    <a href="/join?room={{.ID}}" class="btn btn-primary"><i class="fas fa-sign-in-alt"></i> Join</a>
+                </div>
+                {{end}}
+            </div>
         </div>
     </div>
-
+    
     <script>
     document.getElementById("createRoomBtn")?.addEventListener("click", function() {
         const roomName = prompt("Enter room name:");
@@ -128,7 +324,10 @@
 
         const newRoomElement = document.createElement("div");
         newRoomElement.className = "room-item";
-        newRoomElement.innerHTML = `<span>${room.name}</span><a href="/join?room=${room.id}" class="btn">Join</a>`;
+        newRoomElement.innerHTML = `
+            <span class="room-name">${room.name}</span>
+            <a href="/join?room=${room.id}" class="btn btn-primary"><i class="fas fa-sign-in-alt"></i> Join</a>
+        `;
         roomList.appendChild(newRoomElement);
     }
 

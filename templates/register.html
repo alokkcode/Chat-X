@@ -1,26 +1,340 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Register</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - ChatX</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
-        form { display: inline-block; text-align: left; padding: 20px; border: 1px solid #ccc; border-radius: 5px; }
-        input, select { display: block; margin-bottom: 10px; padding: 5px; width: 100%; }
-        button { padding: 10px; width: 100%; }
+        :root {
+            --primary-color: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-hover: #4338ca;
+            --background-color: #f5f7fa;
+            --card-color: #ffffff;
+            --text-color: #333333;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --input-bg: #f9fafb;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--background-color) 0%, #c3cfe2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            transition: background 0.3s ease;
+        }
+        
+        .container {
+            width: 420px;
+            padding: 40px;
+            background: var(--card-color);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px var(--shadow-color);
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo i {
+            margin-right: 10px;
+            font-size: 24px;
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        h2 {
+            color: var(--text-color);
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        
+        .form-group {
+            margin-bottom: 22px;
+            text-align: left;
+            position: relative;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        
+        .input-icon {
+            position: absolute;
+            top: 42px;
+            transform: translateY(-50%);
+            left: 15px;
+            color: var(--text-muted);
+            transition: color 0.3s;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 15px 15px 15px 45px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+            background-color: var(--card-color);
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-light));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+        
+        button:hover {
+            background: linear-gradient(45deg, var(--primary-hover), var(--primary-color));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
+        }
+
+        .login-section {
+            margin-top: 30px;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+        
+        .login-link {
+            display: block;
+            margin-top: 15px;
+            padding: 12px;
+            background: var(--card-color);
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            border-radius: 10px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .login-link:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 70, 229, 0.4);
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 25px 0;
+        }
+        
+        .divider hr {
+            flex: 1;
+            border: none;
+            height: 1px;
+            background: var(--border-color);
+        }
+        
+        .divider span {
+            padding: 0 15px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .decoration {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(79, 70, 229, 0.03) 100%);
+            z-index: -1;
+        }
+
+        .decoration-1 {
+            top: -100px;
+            right: -100px;
+            width: 200px;
+            height: 200px;
+        }
+
+        .decoration-2 {
+            bottom: -120px;
+            left: -120px;
+            width: 240px;
+            height: 240px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .container {
+                width: 100%;
+                padding: 30px 20px;
+            }
+            
+            input, select, button, .login-link {
+                padding: 12px;
+            }
+            
+            .input-icon {
+                top: 39px;
+            }
+        }
+
+        /* Password strength indicator */
+        .password-strength {
+            height: 5px;
+            border-radius: 5px;
+            margin-top: 8px;
+            display: none;
+            background-color: var(--border-color);
+        }
+
+        .password-strength-bar {
+            height: 100%;
+            border-radius: 5px;
+            width: 0;
+            transition: width 0.3s, background-color 0.3s;
+        }
     </style>
 </head>
 <body>
-    <h2>Register</h2>
-    <form action="/register" method="POST">
-        Username: <input type="text" name="username" required /><br/>
-        Email: <input type="email" name="email" required /><br/>
-        Password: <input type="password" name="password" required /><br/>
-        Role:
-        <select name="role">
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-        </select><br/>
-        <button type="submit">Register</button>
-    </form>
+    <div class="container">
+        <div class="decoration decoration-1"></div>
+        <div class="decoration decoration-2"></div>
+        
+        <div class="logo">
+            <i class="fas fa-comment-dots"></i>
+            ChatX
+        </div>
+        
+        <h2>Create your account</h2>
+        
+        <form action="/register" method="POST">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                <i class="input-icon fas fa-user"></i>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                <i class="input-icon fas fa-envelope"></i>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Choose a password" required>
+                <i class="input-icon fas fa-lock"></i>
+                <div class="password-strength">
+                    <div class="password-strength-bar"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="role">Account Type</label>
+                <select id="role" name="role">
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                </select>
+                <i class="input-icon fas fa-user-tag"></i>
+            </div>
+            
+            <button type="submit">Create Account</button>
+        </form>
+
+        <div class="divider">
+            <hr><span>OR</span><hr>
+        </div>
+
+        <div class="login-section">
+            <p>Already have an account?</p>
+            <a href="/login" class="login-link">Sign In</a>
+        </div>
+    </div>
+
+    <script>
+        // Password strength indicator
+        const passwordInput = document.getElementById('password');
+        const strengthBar = document.querySelector('.password-strength');
+        const strengthBarInner = strengthBar.querySelector('.password-strength-bar');
+        
+        passwordInput.addEventListener('focus', () => {
+            strengthBar.style.display = 'block';
+        });
+        
+        passwordInput.addEventListener('input', () => {
+            const password = passwordInput.value;
+            let strength = 0;
+            
+            if (password.length >= 8) strength += 25;
+            if (/[A-Z]/.test(password)) strength += 25;
+            if (/[0-9]/.test(password)) strength += 25;
+            if (/[^A-Za-z0-9]/.test(password)) strength += 25;
+            
+            strengthBarInner.style.width = strength + '%';
+            
+            if (strength <= 25) {
+                strengthBarInner.style.backgroundColor = '#ef4444';
+            } else if (strength <= 50) {
+                strengthBarInner.style.backgroundColor = '#f59e0b';
+            } else if (strength <= 75) {
+                strengthBarInner.style.backgroundColor = '#3b82f6';
+            } else {
+                strengthBarInner.style.backgroundColor = '#10b981';
+            }
+        });
+        
+        passwordInput.addEventListener('blur', () => {
+            if (passwordInput.value === '') {
+                strengthBar.style.display = 'none';
+            }
+        });
+    </script>
 </body>
 </html>

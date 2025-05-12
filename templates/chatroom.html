@@ -4,40 +4,380 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.RoomName}} - ChatX</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }
-        .container { max-width: 800px; margin: auto; padding: 20px; background: white; border-radius: 5px; }
-        h1 { color: #333; }
-        .chat-container { height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background: #f9f9f9; }
-        .message { padding: 8px; border-radius: 5px; background: white; margin-bottom: 8px; position: relative; border-left: 3px solid #ddd; }
-        .admin { color: #d9534f; font-weight: bold; }
-        .delete-btn { background: none; border: none; cursor: pointer; color: #d9534f; float: right; }
-        .message-form { display: flex; gap: 10px; }
-        #messageInput { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
-        #sendButton { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        :root {
+            --primary-color: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-hover: #4338ca;
+            --background-color: #f5f7fa;
+            --card-color: #ffffff;
+            --text-color: #333333;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --input-bg: #f9fafb;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --secondary-color: #10b981;
+            --secondary-hover: #059669;
+            --danger-color: #ef4444;
+            --danger-hover: #dc2626;
+            --bubble-user: #e0e7ff;
+            --bubble-self: #4f46e5;
+            --bubble-self-text: #fff;
+            --bubble-admin: #fef3c7;
+            --bubble-admin-text: #b45309;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background: linear-gradient(135deg, var(--background-color) 0%, #c3cfe2 100%);
+            margin: 0;
+            min-height: 100vh;
+            padding: 0;
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            height: 95vh;
+            max-height: 800px;
+            display: flex;
+            flex-direction: column;
+            background: var(--card-color);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px var(--shadow-color);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .chat-header {
+            padding: 20px;
+            background: var(--card-color);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .room-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .user-info {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .user-info b {
+            color: var(--primary-color);
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background-color: var(--primary-light);
+            color: white;
+            margin-left: 5px;
+        }
+
+        .back-button {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            background-color: var(--card-color);
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            border-radius: 10px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .back-button:hover {
+            background-color: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-container {
+            flex: 1;
+            padding: 24px 16px 24px 16px;
+            overflow-y: auto;
+            background: var(--background-color);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .message-row {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-end;
+            margin-bottom: 6px;
+        }
+
+        .message-row.self {
+            justify-content: flex-end;
+        }
+
+        .message-bubble {
+            max-width: 65%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            margin: 0 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+            position: relative;
+            word-break: break-word;
+            display: flex;
+            flex-direction: column;
+            animation: messageAppear 0.3s ease-out;
+        }
+
+        @keyframes messageAppear {
+            from { opacity: 0; transform: translateY(10px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+
+        .message-row.self .message-bubble {
+            background: var(--bubble-self);
+            color: var(--bubble-self-text);
+            align-items: flex-end;
+        }
+
+        .message-row.other .message-bubble {
+            background: var(--bubble-user);
+            color: var(--text-color);
+            align-items: flex-start;
+        }
+
+        .message-row.admin .message-bubble {
+            background: var(--bubble-admin);
+            color: var(--bubble-admin-text);
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .username {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .username.admin {
+            color: var(--danger-color);
+            font-weight: 700;
+        }
+
+        .message-text {
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            align-self: flex-end;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--danger-color);
+            font-size: 13px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-left: 6px;
+            margin-top: 2px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .delete-btn:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .message-form {
+            display: flex;
+            gap: 10px;
+            padding: 15px;
+            background-color: var(--card-color);
+            border-top: 1px solid var(--border-color);
+            z-index: 10;
+        }
+
+        #messageInput {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 15px;
+            background-color: var(--input-bg);
+            transition: all 0.3s;
+            color: var(--text-color);
+        }
+
+        #messageInput:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+            background-color: var(--card-color);
+        }
+
+        #sendButton {
+            padding: 12px 20px;
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-light));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #sendButton:hover {
+            background: linear-gradient(45deg, var(--primary-hover), var(--primary-color));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        #sendButton i {
+            font-size: 14px;
+        }
+
+        .decoration {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(79, 70, 229, 0.02) 100%);
+            z-index: 0;
+        }
+
+        .decoration-1 {
+            top: -150px;
+            right: -150px;
+            width: 300px;
+            height: 300px;
+        }
+
+        .decoration-2 {
+            bottom: -100px;
+            left: -100px;
+            width: 200px;
+            height: 200px;
+        }
+
+        /* Custom scrollbar */
+        .chat-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-container::-webkit-scrollbar-track {
+            background: var(--background-color);
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background-color: var(--border-color);
+            border-radius: 10px;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb:hover {
+            background-color: var(--text-muted);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 0;
+                height: calc(100vh - 40px);
+                max-height: none;
+            }
+
+            body {
+                padding: 0;
+            }
+
+            .message-bubble {
+                max-width: 90%;
+            }
+
+            .chat-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .back-button {
+                align-self: flex-start;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>{{.RoomName}}</h1>
-        <div>Logged in as: <b>{{.Username}}</b> ({{.Role}}) | <a href="/hub">⬅ Back to Rooms</a></div>
-        
+        <div class="decoration decoration-1"></div>
+        <div class="decoration decoration-2"></div>
+
+        <div class="chat-header">
+            <div>
+                <div class="room-title">
+                    <i class="fas fa-comments"></i> {{.RoomName}}
+                </div>
+                <div class="user-info">
+                    Logged in as: <b>{{.Username}}</b> <span class="role-badge">{{.Role}}</span>
+                </div>
+            </div>
+            <a href="/hub" class="back-button">
+                <i class="fas fa-arrow-left"></i> Back to Rooms
+            </a>
+        </div>
+
         <!-- Chat messages container -->
         <div id="chatMessages" class="chat-container">
             {{range .Messages}}
-            <div class="message" data-message-id="{{.ID}}">
-                <span class="username {{.Role}}">{{.Username}}:</span>
-                <span class="message-text">{{.Content}}</span>
+            <div class="message" data-message-id="{{.ID}}" data-user-id="{{.UserID}}">
+                <span class="username {{.Role}}">{{.Username}}</span>
+                <div class="message-bubble">{{.Content}}</div>
                 <span class="message-time">{{.Timestamp.Format "15:04:05"}}</span>
-                {{if .Deletable}} <button class="delete-btn" onclick="deleteMessage({{.ID}})">🗑️ Delete</button> {{end}}
+                {{if .Deletable}} 
+                <button class="delete-btn" onclick="deleteMessage({{.ID}})">
+                    <i class="fas fa-trash-alt"></i> Delete
+                </button> 
+                {{end}}
             </div>
             {{end}}
         </div>
 
         <!-- Message input form -->
         <form id="messageForm" class="message-form">
-            <input type="text" id="messageInput" placeholder="Enter message..." disabled>
-            <button id="sendButton">Send</button>
+            <input type="text" id="messageInput" placeholder="Type your message here..." disabled>
+            <button id="sendButton" type="submit">
+                <i class="fas fa-paper-plane"></i> Send
+            </button>
         </form>
     </div>
 
@@ -50,36 +390,53 @@
     <script src="/static/js/chat.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
+            const currentUserId = document.getElementById("current-user-id").value;
+            
+            // Process existing server-rendered messages
+            const existingMessages = document.querySelectorAll('.message[data-message-id]');
+            existingMessages.forEach(msg => {
+                const messageUserId = msg.getAttribute('data-user-id');
+                if(messageUserId == currentUserId) {
+                    msg.dataset.currentUser = "true";
+                }
+            });
+
+            // Process JSON messages
             const messagesRaw = `{{.MessagesJSON}}`;
-            console.log("Raw messages JSON:", messagesRaw); // Log raw JSON before parsing
-        
             try {
                 const messagesData = JSON.parse(messagesRaw || "[]");
-                console.log("Parsed messages JSON:", messagesData); // Log parsed messages
-        
                 const messageContainer = document.getElementById("chatMessages");
-        
+
                 messagesData.forEach(msg => {
                     const messageDiv = document.createElement("div");
                     messageDiv.className = "message";
                     messageDiv.dataset.messageId = msg.id;
-        
-                    // FIX: Ensure delete button follows permission rules
-                    const deleteButton = msg.deletable ? `<button class="delete-btn" onclick="deleteMessage(${msg.id})">🗑️ Delete</button>` : "";
-        
+                    messageDiv.dataset.userId = msg.userid;
+
+                    if(msg.userid == currentUserId) {
+                        messageDiv.dataset.currentUser = "true";
+                    }
+
+                    const deleteButton = msg.deletable ? 
+                        `<button class="delete-btn" onclick="deleteMessage(${msg.id})">
+                            <i class="fas fa-trash-alt"></i> Delete
+                        </button>` : "";
+
                     messageDiv.innerHTML = `
-                        <span class="username ${msg.role}">${msg.username}:</span>
-                        <span class="message-text">${msg.content}</span>
+                        <span class="username ${msg.role}">${msg.username}</span>
+                        <div class="message-bubble">${msg.content}</div>
                         <span class="message-time">${new Date(msg.timestamp).toLocaleTimeString()}</span>
                         ${deleteButton} 
                     `;
                     messageContainer.appendChild(messageDiv);
                 });
-        
+
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+
             } catch (e) {
                 console.error("Error parsing messages JSON:", e);
             }
         });
-        </script>
+    </script>
 </body>
 </html>

@@ -150,7 +150,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	hub.Rooms[roomID][conn] = true
 	hub.RoomsMutex.Unlock()
 
-	// ✅ TRACK ACTIVE USERS - Add user to activeUsers list
+	// TRACK ACTIVE USERS - Add user to activeUsers list
 	hub.RoomsMutex.Lock() // Prevent race conditions
 	if _, exists := activeUsers[roomIDInt]; !exists {
 		activeUsers[roomIDInt] = make(map[int]bool)
@@ -160,7 +160,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("User joined:", user.Username, "Room ID:", roomIDInt)
 
-	// ✅ Broadcast updated active user count
+	// Broadcast updated active user count
 	broadcastUserCount(roomIDInt)
 
 	// Notify users via WebSocket in JSON format
@@ -179,14 +179,14 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		hub.RoomsMutex.Unlock()
 		conn.Close()
 
-		// ✅ Remove user from active list on disconnect
+		// Remove user from active list on disconnect
 		hub.RoomsMutex.Lock() // Prevent race conditions
 		delete(activeUsers[roomIDInt], user.ID)
 		hub.RoomsMutex.Unlock()
 
 		log.Println("User left:", user.Username, "Room ID:", roomIDInt)
 
-		broadcastUserCount(roomIDInt) // ✅ Update active user count
+		broadcastUserCount(roomIDInt) // Update active user count
 	}()
 
 	// Handle messaging within the room
