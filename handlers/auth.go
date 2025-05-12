@@ -14,7 +14,7 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse form
+	// Handle form POST
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Unable to parse form", http.StatusBadRequest)
 		return

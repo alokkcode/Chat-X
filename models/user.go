@@ -62,7 +62,12 @@ func GetUserIDByEmail(email string) (int, error) {
 // Compare hashed password
 func CheckPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
+
+	if err != nil {
+		return false // password does NOT match
+	}
+
+	return true // password matches
 }
 
 // GenerateSessionToken creates a random session token
@@ -81,7 +86,7 @@ func StoreSessionToken(userID int, token string) error {
 	return err
 }
 
-// ValidateSessionToken checks if the session token is valid
+// ValidateSessionToken checks if the session token is valid (session middleware)
 func ValidateSessionToken(token string) (*User, error) {
 	row := config.DB.QueryRow(`
 		SELECT users.id, users.username, users.email, users.role 

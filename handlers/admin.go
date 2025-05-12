@@ -66,7 +66,7 @@ func HandleCreateRoom(w http.ResponseWriter, r *http.Request) {
 
 // HandleDeleteRoom allows an admin to delete a room they created
 func HandleDeleteRoom(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete { // ✅ Change from http.MethodPost to http.MethodDelete
+	if r.Method != http.MethodDelete { // Change from http.MethodPost to http.MethodDelete
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
@@ -83,7 +83,7 @@ func HandleDeleteRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ✅ Extract room ID from URL instead of reading JSON body
+	//Extract room ID from URL instead of reading JSON body
 	roomIDStr := strings.TrimPrefix(r.URL.Path, "/api/delete-room/")
 	roomID, err := strconv.Atoi(roomIDStr)
 	if err != nil {
@@ -91,14 +91,14 @@ func HandleDeleteRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ✅ Check if admin owns the room before deleting
+	//Check if admin owns the room before deleting
 	isAdminRoom, err := models.IsRoomCreatedByAdmin(roomID, user.ID)
 	if err != nil || !isAdminRoom {
 		http.Error(w, "You can only delete rooms you created", http.StatusForbidden)
 		return
 	}
 
-	// ✅ Delete the room and associated messages
+	// Delete the room and associated messages
 	err = models.DeleteRoom(roomID, user.ID)
 	if err != nil {
 		http.Error(w, "Failed to delete room: "+err.Error(), http.StatusInternalServerError)

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-
 	_"github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
 )
@@ -20,9 +19,8 @@ func ConnectDB() {
 		log.Fatalf("Error loading .env file: %s", err.Error())
 	}
 
-
 	// Example: "username:password@tcp(localhost:3306)/chatx"
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s",
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", // data source name 
 		getEnv("DB_USER", "root"),
 		getEnv("DB_PASS", "password"),
 		getEnv("DB_HOST", "localhost"),

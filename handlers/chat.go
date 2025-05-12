@@ -218,62 +218,6 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleDeleteMessage handles form-based message deletion requests
-func HandleDeleteMessage(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	sessionCookie, err := r.Cookie("session")
-	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	user, err := models.ValidateSessionToken(sessionCookie.Value)
-	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	// Parse form data
-	err = r.ParseForm()
-	if err != nil {
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
-		return
-	}
-
-	messageIDStr := r.FormValue("id")
-	messageID, err := strconv.Atoi(messageIDStr)
-	if err != nil {
-		http.Error(w, "Invalid message ID", http.StatusBadRequest)
-		return
-	}
-
-	// Delete message
-	err = models.DeleteMessage(messageID, user.ID)
-	if err != nil {
-		http.Error(w, "Failed to delete message", http.StatusForbidden)
-		return
-	}
-
-	// Get room ID to redirect back
-	msg, _ := models.GetMessageByID(messageID)
-	roomID := msg.RoomID
-
-	// Notify clients about deletion
-	deleteMsg := map[string]interface{}{
-		"type":       "delete",
-		"message_id": messageID,
-	}
-	deleteJSON, _ := json.Marshal(deleteMsg)
-	hub.BroadcastToRoom(strconv.Itoa(roomID), string(deleteJSON))
-
-	// Redirect back to the chat room
-	http.Redirect(w, r, "/join?room="+strconv.Itoa(roomID), http.StatusSeeOther)
-}
-
 // HandleAPIDeleteMessage handles AJAX/JSON API requests for message deletion
 func HandleAPIDeleteMessage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -364,14 +308,14 @@ func HandleAdminDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ✅ Fetch rooms created by this admin
+	// Fetch rooms created by this admin
 	rooms, err := models.GetRoomsByAdmin(user.ID)
 	if err != nil {
 		http.Error(w, "Could not fetch rooms", http.StatusInternalServerError)
 		return
 	}
 
-	// ✅ Fetch stats for each room
+	// Fetch stats for each room
 	roomStats := []struct {
 		RoomID      int
 		RoomName    string
@@ -406,7 +350,7 @@ func HandleAdminDashboard(w http.ResponseWriter, r *http.Request) {
 
 func broadcastUserCount(roomID int) {
 	hub.RoomsMutex.Lock()
-	userCount := len(activeUsers[roomID]) // ✅ Get active user count
+	userCount := len(activeUsers[roomID]) // Get active user count
 	hub.RoomsMutex.Unlock()
 
 	update := map[string]interface{}{
@@ -416,7 +360,7 @@ func broadcastUserCount(roomID int) {
 	}
 	updateJSON, _ := json.Marshal(update)
 
-	// ✅ Send update to all clients in the room
+	// Send update to all clients in the room
 	hub.BroadcastToRoom(strconv.Itoa(roomID), string(updateJSON))
 }
 
@@ -431,7 +375,7 @@ func HandleDashboardWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	defer conn.Close()
 
-	// ✅ Continuously send active user updates to dashboard
+	// Continuously send active user updates to dashboard
 	for {
 		for roomID, users := range activeUsers {
 			userCount := len(users)
@@ -443,13 +387,13 @@ func HandleDashboardWebSocket(w http.ResponseWriter, r *http.Request) {
 			}
 			updateJSON, _ := json.Marshal(update)
 
-			// ✅ Send update to dashboard WebSocket client
+			// Send update to dashboard WebSocket client
 			err := conn.WriteMessage(websocket.TextMessage, updateJSON)
 			if err != nil {
 				log.Println("Error sending active users update:", err)
 				return
 			}
 		}
-		time.Sleep(3 * time.Second) // ✅ Update every 3 seconds
+		time.Sleep(3 * time.Second) // update every 3 seconds
 	}
 }

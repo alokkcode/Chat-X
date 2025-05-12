@@ -1,0 +1,245 @@
+
+        :root {
+            --primary-color: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-hover: #4338ca;
+            --background-color: #f5f7fa;
+            --card-color: #ffffff;
+            --text-color: #333333;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --input-bg: #f9fafb;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --secondary-color: #10b981;
+            --secondary-hover: #059669;
+            --danger-color: #ef4444;
+            --danger-hover: #dc2626;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--background-color) 0%, #c3cfe2 100%);
+            margin: 0;
+            min-height: 100vh;
+            padding: 30px;
+            color: var(--text-color);
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--primary-color);
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo i {
+            margin-right: 10px;
+            font-size: 28px;
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background-color: var(--card-color);
+            padding: 12px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .user-info span {
+            color: var(--text-muted);
+        }
+        
+        .user-info strong {
+            color: var(--text-color);
+            font-weight: 600;
+        }
+        
+        .role-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background-color: var(--primary-light);
+            color: white;
+            margin-left: 5px;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-light));
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(45deg, var(--primary-hover), var(--primary-color));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(45deg, var(--secondary-color), #34d399);
+        }
+        
+        .btn-secondary:hover {
+            background: linear-gradient(45deg, var(--secondary-hover), var(--secondary-color));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(45deg, var(--danger-color), #f87171);
+        }
+        
+        .btn-danger:hover {
+            background: linear-gradient(45deg, var(--danger-hover), var(--danger-color));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+        
+        .admin-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .rooms-container {
+            background: var(--card-color);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px var(--shadow-color);
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .rooms-heading {
+            font-size: 24px;
+            margin-top: 0;
+            margin-bottom: 25px;
+            color: var(--text-color);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .room-list {
+            display: grid;
+            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        }
+        
+        .room-item {
+            background-color: var(--input-bg);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+            border: 1px solid var(--border-color);
+        }
+        
+        .room-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.05);
+            border-color: var(--primary-light);
+        }
+        
+        .room-name {
+            font-weight: 600;
+            font-size: 18px;
+            color: var(--text-color);
+        }
+        
+        .decoration {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(79, 70, 229, 0.03) 100%);
+            z-index: 0;
+        }
+        
+        .decoration-1 {
+            top: -150px;
+            right: -150px;
+            width: 300px;
+            height: 300px;
+        }
+        
+        .decoration-2 {
+            bottom: -100px;
+            left: -100px;
+            width: 200px;
+            height: 200px;
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .user-info {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .admin-controls {
+                width: 100%;
+            }
+            
+            .room-list {
+                grid-template-columns: 1fr;
+            }
+            
+            body {
+                padding: 20px;
+            }
+        }
